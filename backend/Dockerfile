@@ -7,14 +7,15 @@ COPY . .
 
 ARG SERVICE_MODULE
 
-RUN mvn clean package -DskipTests -pl ${SERVICE_MODULE} -am
+RUN echo "Building service module: ${SERVICE_MODULE}" && \
+    test -n "${SERVICE_MODULE}" && \
+    mvn clean package -DskipTests -pl "${SERVICE_MODULE}" -am
 
 # Runtime stage
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Important: Declare ARG again in runtime stage
 ARG SERVICE_MODULE
 
 COPY --from=build /workspace/${SERVICE_MODULE}/target/${SERVICE_MODULE}-1.0.0.jar app.jar
