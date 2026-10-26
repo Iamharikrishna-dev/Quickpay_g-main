@@ -11,8 +11,14 @@ const money = (amount) => new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD"
 }).format(Number(amount || 0));
 
+
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || ""
+).replace(/\/$/, "");
+
 async function api(path, options = {}, token = "") {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${API_BASE_URL}/api${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -20,11 +26,20 @@ async function api(path, options = {}, token = "") {
       ...options.headers
     }
   });
+
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || payload.message || "Something went wrong");
+
+  if (!response.ok) {
+    throw new Error(
+      payload.error || payload.message || "Something went wrong"
+    );
+  }
+
   return payload;
 }
 
+console.log("API BASE:", import.meta.env.VITE_API_BASE_URL);
+console.log("API URL:", `${API_BASE_URL}/api/auth/signup`);
 function AuthScreen({ onAuthenticated }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
