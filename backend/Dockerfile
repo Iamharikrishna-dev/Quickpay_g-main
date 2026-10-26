@@ -1,25 +1,31 @@
-# Build stage
+ARG SERVICE_MODULE
+
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 
-WORKDIR /workspace
-
-COPY . .
-
 ARG SERVICE_MODULE
+
+WORKDIR /workspace
+COPY . .
 
 RUN echo "Building service module: ${SERVICE_MODULE}" && \
     test -n "${SERVICE_MODULE}" && \
-    mvn clean package -DskipTests -pl "${SERVICE_MODULE}" -am
+    mvn -B -f pom.xml -pl "${SERVICE_MODULE}" -am -DskipTests package
 
-# Runtime stage
 FROM eclipse-temurin:21-jre
+
+ARG SERVICE_MODULE
 
 WORKDIR /app
 
-ARG SERVICE_MODULE
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /workspace/${SERVICE_MODULE}/target/${SERVICE_MODULE}-1.0.0.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=20 \
+    CMD curl -fsS http://localhost:8080/health >/dev/null || exit 1
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
